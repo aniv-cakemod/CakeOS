@@ -1,3 +1,4 @@
+using System.Reflection;
 using System.Runtime.Loader;
 using CakeOS.Platform;
 using Haven.UI.Components;
@@ -66,7 +67,31 @@ public static class HuiRootProviderResolver
         if (!Path.IsPathFullyQualified(assemblyPath))
             throw new ArgumentException($"{AssemblyOption} must be an absolute path.");
 
-        var assembly = AssemblyLoadContext.Default.LoadFromAssemblyPath(Path.GetFullPath(assemblyPath));
+        var providerAssemblyPath = Path.GetFullPath(assemblyPath);
+        var providerDirectory = Path.GetDirectoryName(providerAssemblyPath)
+            ?? throw new InvalidOperationException("HUI root provider assembly has no parent directory.");
+
+        Assembly? ResolveProviderDependency(AssemblyLoadContext context, AssemblyName dependency)
+        {
+            if (string.IsNullOrWhiteSpace(dependency.Name))
+                return null;
+
+            var candidate = Path.Combine(providerDirectory, dependency.Name + ".dll");
+            return File.Exists(candidate) ? context.LoadFromAssemblyPath(candidate) : null;
+        }
+
+        AssemblyLoadContext.Default.Resolving += ResolveProviderDependency;
+        Assembly assembly;
+        try
+        {
+            assembly = AssemblyLoadContext.Default.LoadFromAssemblyPath(providerAssemblyPath);
+        }
+        catch
+        {
+            AssemblyLoadContext.Default.Resolving -= ResolveProviderDependency;
+            throw;
+        }
+
         var providerType = assembly.GetType(typeName, throwOnError: true, ignoreCase: false)
             ?? throw new InvalidOperationException($"Provider type '{typeName}' was not found.");
         if (!typeof(IHuiRootProvider).IsAssignableFrom(providerType))
