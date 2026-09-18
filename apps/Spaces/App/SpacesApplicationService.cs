@@ -8,6 +8,7 @@ public interface ISpacesShellBridge
     Task OpenTasksAsync(SpaceDefinition space, CancellationToken cancellationToken = default);
     Task OpenConfiguredChatAsync(SpaceDefinition space, SpaceLaunchPlan plan, SpaceConversation conversation, CancellationToken cancellationToken = default);
     Task OpenConversationAsync(SpaceConversation conversation, CancellationToken cancellationToken = default);
+    Task OpenSpaceLayoutAsync(SpaceDefinition space, CancellationToken cancellationToken = default);
 }
 
 public interface ISpacesFilePicker
@@ -95,6 +96,13 @@ public sealed class SpacesApplicationService
     {
         await _conversations.DetachSpaceAsync(spaceId, token).ConfigureAwait(false);
         await _registry.DeleteAsync(spaceId, token).ConfigureAwait(false);
+    }
+
+    public async Task OpenLayoutAsync(Guid spaceId, CancellationToken token = default)
+    {
+        var space = await _registry.GetAsync(spaceId, token).ConfigureAwait(false)
+            ?? throw new KeyNotFoundException($"Space '{spaceId}' was not found.");
+        await _shell.OpenSpaceLayoutAsync(space, token).ConfigureAwait(false);
     }
 
     private async Task<SpaceLaunchPlan> ResolveAvailableModelAsync(SpaceLaunchPlan plan, CancellationToken token)

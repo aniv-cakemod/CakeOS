@@ -23,6 +23,7 @@ public sealed class SpacesHuiController : IDisposable
         Scene = scene ?? new SpacesHuiScene();
 
         Scene.CreateRequested += OnCreate;
+        Scene.ArchivedVisibilityChanged += OnArchivedVisibilityChanged;
         Scene.SpaceSelected += OnSelect;
         Scene.SaveRequested += OnSave;
         Scene.LaunchRequested += OnLaunch;
@@ -30,6 +31,7 @@ public sealed class SpacesHuiController : IDisposable
         Scene.ForkRequested += OnFork;
         Scene.ArchiveRequested += OnArchive;
         Scene.DeleteRequested += OnDelete;
+        Scene.ManageLayoutRequested += OnManageLayout;
         Scene.AddFileRequested += OnAddFile;
         Scene.RemoveFileRequested += OnRemoveFile;
         Scene.ConversationSelected += OnConversation;
@@ -59,6 +61,12 @@ public sealed class SpacesHuiController : IDisposable
     }
 
     public void SetIncludeArchived(bool includeArchived) => _includeArchived = includeArchived;
+
+    private async void OnArchivedVisibilityChanged(object? sender, bool includeArchived) => await Safe(async () =>
+    {
+        _includeArchived = includeArchived;
+        await RefreshAsync();
+    }, "change archived visibility");
 
     private async Task RefreshConversationsAsync(CancellationToken token)
     {
@@ -126,6 +134,9 @@ public sealed class SpacesHuiController : IDisposable
         Scene.SetStatus("Custom Space deleted; its conversations were detached.");
     }, "delete Space");
 
+    private async void OnManageLayout(object? sender, Guid id) =>
+        await Safe(() => _application.OpenLayoutAsync(id), "open Space layout");
+
     private async void OnAddFile(object? sender, SpaceFilePermission permission) => await Safe(async () =>
     {
         if (_files is null || SelectedSpaceId is not { } id) { Scene.SetStatus("File picker is unavailable in this host."); return; }
@@ -167,6 +178,7 @@ public sealed class SpacesHuiController : IDisposable
         if (_disposed) return;
         _disposed = true;
         Scene.CreateRequested -= OnCreate;
+        Scene.ArchivedVisibilityChanged -= OnArchivedVisibilityChanged;
         Scene.SpaceSelected -= OnSelect;
         Scene.SaveRequested -= OnSave;
         Scene.LaunchRequested -= OnLaunch;
@@ -174,6 +186,7 @@ public sealed class SpacesHuiController : IDisposable
         Scene.ForkRequested -= OnFork;
         Scene.ArchiveRequested -= OnArchive;
         Scene.DeleteRequested -= OnDelete;
+        Scene.ManageLayoutRequested -= OnManageLayout;
         Scene.AddFileRequested -= OnAddFile;
         Scene.RemoveFileRequested -= OnRemoveFile;
         Scene.ConversationSelected -= OnConversation;

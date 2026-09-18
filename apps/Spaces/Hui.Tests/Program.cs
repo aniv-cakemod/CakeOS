@@ -39,6 +39,9 @@ try
     await app.LaunchAsync(SpaceRegistry.ResearchSpaceId);
     Require(shell.LastTarget == "chat", "Research routes to configured workspace");
 
+    await app.OpenLayoutAsync(custom.Id);
+    Require(shell.LastTarget == "layout", "Space layout routes through shared shell contract");
+
     var picked = await new FakePicker(root).PickFilesAsync("files");
     await registry.AddFileAsync(custom.Id, picked[0], SpaceFilePermission.ReadOnly);
     await controller.RefreshAsync();
@@ -74,6 +77,7 @@ sealed class RecordingShell : ISpacesShellBridge
     public Task OpenTasksAsync(SpaceDefinition space, CancellationToken cancellationToken = default) { LastTarget = "tasks"; return Task.CompletedTask; }
     public Task OpenConfiguredChatAsync(SpaceDefinition space, SpaceLaunchPlan plan, SpaceConversation conversation, CancellationToken cancellationToken = default) { LastTarget = "chat"; LastPlan = plan; return Task.CompletedTask; }
     public Task OpenConversationAsync(SpaceConversation conversation, CancellationToken cancellationToken = default) { LastTarget = "conversation"; return Task.CompletedTask; }
+    public Task OpenSpaceLayoutAsync(SpaceDefinition space, CancellationToken cancellationToken = default) { LastTarget = "layout"; return Task.CompletedTask; }
 }
 
 sealed class FakePicker(string root) : ISpacesFilePicker

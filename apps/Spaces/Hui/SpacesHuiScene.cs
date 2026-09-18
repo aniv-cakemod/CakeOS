@@ -61,6 +61,8 @@ public sealed class SpacesHuiScene
         Header.SetValue(HavenProperties.ColumnSpan, 2);
         Header.SetValue(HavenProperties.Row, 0);
         CreateButton = Action("Spaces.Create", "New Space", ButtonVariant.Primary);
+        ShowArchivedButton = Action("Spaces.ShowArchived", "Show archived", ButtonVariant.Secondary);
+        Header.AddAction(ShowArchivedButton);
         Header.AddAction(CreateButton);
         Root.Add(Header);
 
@@ -129,7 +131,8 @@ public sealed class SpacesHuiScene
         ForkButton = Action("Spaces.Fork", "Fork", ButtonVariant.Secondary);
         ArchiveButton = Action("Spaces.Archive", "Archive", ButtonVariant.Secondary);
         DeleteButton = Action("Spaces.Delete", "Delete", ButtonVariant.Ghost);
-        foreach (var button in new[] { SaveButton, LaunchButton, NewChatButton, ForkButton, ArchiveButton, DeleteButton }) ActionRow.Add(button);
+        ManageLayoutButton = Action("Spaces.Layout", "Manage layout", ButtonVariant.Ghost);
+        foreach (var button in new[] { SaveButton, LaunchButton, NewChatButton, ForkButton, ArchiveButton, ManageLayoutButton, DeleteButton }) ActionRow.Add(button);
         Editor.Add(ActionRow);
 
         FilesPanel = new Panel { Name = "Spaces.Files", Title = "Files", IsCollapsible = true };
@@ -144,6 +147,9 @@ public sealed class SpacesHuiScene
         fileActions.Add(AddReadOnlyFileButton); fileActions.Add(AddReadWriteFileButton);
         Editor.Add(fileActions);
         Editor.Add(FilesPanel);
+
+        GeneratedSurfaceText = new HuiText("No generated surface configured.") { Name = "Spaces.GeneratedSurface.Summary", Level = TextLevel.Caption };
+        Editor.Add(GeneratedSurfaceText);
 
         ConversationsPanel = new Panel { Name = "Spaces.Conversations", Title = "Space conversations", IsCollapsible = true };
         ConversationsPanel.Header.Name = "Spaces.Conversations.Header";
@@ -162,6 +168,12 @@ public sealed class SpacesHuiScene
         Root.Add(StatusText);
 
         CreateButton.Invoked += (_, _) => CreateRequested?.Invoke(this, EventArgs.Empty);
+        ShowArchivedButton.Invoked += (_, _) =>
+        {
+            IncludeArchived = !IncludeArchived;
+            ShowArchivedButton.Content = IncludeArchived ? "Hide archived" : "Show archived";
+            ArchivedVisibilityChanged?.Invoke(this, IncludeArchived);
+        };
         Sidebar.ItemInvoked += (_, key) => DestinationRequested?.Invoke(this, key switch {
             "home" => SpacesDestination.Home,
             "chat" => SpacesDestination.Chat,
@@ -176,6 +188,7 @@ public sealed class SpacesHuiScene
         ForkButton.Invoked += (_, _) => InvokeSelected(ForkRequested);
         ArchiveButton.Invoked += (_, _) => InvokeSelected(ArchiveRequested);
         DeleteButton.Invoked += (_, _) => InvokeSelected(DeleteRequested);
+        ManageLayoutButton.Invoked += (_, _) => InvokeSelected(ManageLayoutRequested);
         AddReadOnlyFileButton.Invoked += (_, _) => AddFileRequested?.Invoke(this, SpaceFilePermission.ReadOnly);
         AddReadWriteFileButton.Invoked += (_, _) => AddFileRequested?.Invoke(this, SpaceFilePermission.ReadWrite);
 
@@ -183,6 +196,7 @@ public sealed class SpacesHuiScene
     }
 
     public event EventHandler? CreateRequested;
+    public event EventHandler<bool>? ArchivedVisibilityChanged;
     public event EventHandler<SpacesDestination>? DestinationRequested;
     public event EventHandler<Guid>? SpaceSelected;
     public event EventHandler<SpaceEditorDraft>? SaveRequested;
@@ -191,6 +205,7 @@ public sealed class SpacesHuiScene
     public event EventHandler<Guid>? ForkRequested;
     public event EventHandler<Guid>? ArchiveRequested;
     public event EventHandler<Guid>? DeleteRequested;
+    public event EventHandler<Guid>? ManageLayoutRequested;
     public event EventHandler<SpaceFilePermission>? AddFileRequested;
     public event EventHandler<string>? RemoveFileRequested;
     public event EventHandler<Guid>? ConversationSelected;
@@ -218,16 +233,20 @@ public sealed class SpacesHuiScene
     public Input SurfaceTemplateInput { get; }
     public Input SurfaceInputsInput { get; }
     public HuiButton CreateButton { get; }
+    public HuiButton ShowArchivedButton { get; }
     public HuiButton SaveButton { get; }
     public HuiButton LaunchButton { get; }
     public HuiButton NewChatButton { get; }
     public HuiButton ForkButton { get; }
     public HuiButton ArchiveButton { get; }
     public HuiButton DeleteButton { get; }
+    public HuiButton ManageLayoutButton { get; }
     public HuiButton AddReadOnlyFileButton { get; }
     public HuiButton AddReadWriteFileButton { get; }
     public HuiText StatusText { get; }
+    public HuiText GeneratedSurfaceText { get; }
     public SpaceThinkingMode ThinkingMode { get; private set; } = SpaceThinkingMode.Default;
+    public bool IncludeArchived { get; private set; }
 
     public void SetCompact(bool compact)
     {
@@ -260,6 +279,7 @@ public sealed class SpacesHuiScene
         {
             NameInput.Text = DescriptionInput.Text = ModelInput.Text = InstructionsInput.Text = string.Empty;
             ExampleUserInput.Text = ExampleAssistantInput.Text = SurfaceTemplateInput.Text = SurfaceInputsInput.Text = string.Empty;
+            GeneratedSurfaceText.Content = "No generated surface configured.";
             SetStatus("Select a Space.");
             return;
         }
@@ -273,6 +293,9 @@ public sealed class SpacesHuiScene
         ExampleAssistantInput.Text = space.ExamplePairs.FirstOrDefault()?.Assistant ?? string.Empty;
         SurfaceTemplateInput.Text = space.GeneratedSurface?.TemplateKey ?? string.Empty;
         SurfaceInputsInput.Text = space.GeneratedSurface?.InputsJson ?? string.Empty;
+        GeneratedSurfaceText.Content = space.GeneratedSurface is null
+            ? "No generated surface configured."
+            : $"Generated surface: {space.GeneratedSurface.TemplateKey}";
         ArchiveButton.Content = space.IsArchived ? "Restore" : "Archive";
         DeleteButton.SetState(HavenElementState.Disabled, space.IsBuiltIn);
         RenderFiles(space.Files);
