@@ -12,7 +12,7 @@ permissions:
 jobs:
   spaces-domain-smoke:
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
@@ -22,3 +22,16 @@ jobs:
         run: dotnet run --project apps/Spaces/Tests/CakeOS.Spaces.Tests.csproj
       - name: Run Spaces HUI/controller smoke
         run: dotnet run --project apps/Spaces/Hui.Tests/CakeOS.Spaces.Hui.Tests.csproj
+      - name: Build Spaces Linux root provider and CakeOS HUI host
+        run: dotnet build apps/Spaces/LinuxHost/CakeOS.Spaces.LinuxHost.csproj -c Release
+      - name: Launch Spaces through the Linux graphical HUI host
+        env:
+          XDG_STATE_HOME: ${{ runner.temp }}/cakeos-spaces-state
+          CAKEOS_HUI_PREVIEW_AUTO_EXIT_MS: '1200'
+        run: |
+          mkdir -p "$XDG_STATE_HOME"
+          PROVIDER="$PWD/apps/Spaces/LinuxHost/bin/Release/net10.0/CakeOS.Spaces.LinuxHost.dll"
+          test -f "$PROVIDER"
+          xvfb-run -a dotnet run --project HUI/LinuxHost/CakeOS.HuiLinuxHost.csproj -c Release --no-build -- \
+            --hui-root-provider-assembly "$PROVIDER" \
+            --hui-root-provider-type CakeOS.Spaces.LinuxHost.SpacesLinuxRootProvider
