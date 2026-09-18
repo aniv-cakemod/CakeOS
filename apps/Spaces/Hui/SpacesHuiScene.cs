@@ -84,6 +84,8 @@ public sealed class SpacesHuiScene
         Root.Add(Main);
 
         PickerPanel = new Panel { Name = "Spaces.PickerPanel", Title = "Your Spaces", IsCollapsible = false };
+        PickerPanel.Header.Name = "Spaces.PickerPanel.Header";
+        PickerPanel.Content.Name = "Spaces.PickerPanel.Content";
         PickerPanel.SetValue(HavenProperties.Column, 0);
         SpacesList = new Container { Name = "Spaces.List", Layout = HavenLayout.Vertical };
         SpacesList.SetValue(HavenProperties.Gap, HavenLength.Px(6));
@@ -91,6 +93,8 @@ public sealed class SpacesHuiScene
         Main.Add(PickerPanel);
 
         DetailPanel = new Panel { Name = "Spaces.DetailPanel", Title = "Space details", IsCollapsible = false };
+        DetailPanel.Header.Name = "Spaces.DetailPanel.Header";
+        DetailPanel.Content.Name = "Spaces.DetailPanel.Content";
         DetailPanel.SetValue(HavenProperties.Column, 1);
         Editor = new Container { Name = "Spaces.Editor", Layout = HavenLayout.Vertical };
         Editor.SetValue(HavenProperties.Gap, HavenLength.Px(8));
@@ -129,6 +133,8 @@ public sealed class SpacesHuiScene
         Editor.Add(ActionRow);
 
         FilesPanel = new Panel { Name = "Spaces.Files", Title = "Files", IsCollapsible = true };
+        FilesPanel.Header.Name = "Spaces.Files.Header";
+        FilesPanel.Content.Name = "Spaces.Files.Content";
         FilesList = new Container { Name = "Spaces.Files.List", Layout = HavenLayout.Vertical };
         FilesPanel.SetContent(FilesList);
         var fileActions = new Container { Name = "Spaces.Files.Actions", Layout = HavenLayout.Horizontal };
@@ -140,6 +146,8 @@ public sealed class SpacesHuiScene
         Editor.Add(FilesPanel);
 
         ConversationsPanel = new Panel { Name = "Spaces.Conversations", Title = "Space conversations", IsCollapsible = true };
+        ConversationsPanel.Header.Name = "Spaces.Conversations.Header";
+        ConversationsPanel.Content.Name = "Spaces.Conversations.Content";
         ConversationsList = new Container { Name = "Spaces.Conversations.List", Layout = HavenLayout.Vertical };
         ConversationsPanel.SetContent(ConversationsList);
         Editor.Add(ConversationsPanel);
