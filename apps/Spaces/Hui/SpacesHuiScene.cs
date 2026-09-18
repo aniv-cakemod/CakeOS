@@ -78,7 +78,7 @@ public sealed class SpacesHuiScene
         ]);
         Root.Add(Sidebar);
 
-        Main = new Container { Name = "Spaces.Main", Layout = HavenLayout.Grid, Columns = "minmax(220px, 320px) 1fr", Rows = "1fr" };
+        Main = new Container { Name = "Spaces.Main", Layout = HavenLayout.Grid, Columns = "300px 1fr", Rows = "1fr" };
         Main.SetValue(HavenProperties.Row, 1);
         Main.SetValue(HavenProperties.Column, 1);
         Main.SetValue(HavenProperties.Padding, HavenThickness.Parse("16px"));
@@ -251,7 +251,7 @@ public sealed class SpacesHuiScene
     public void SetCompact(bool compact)
     {
         Sidebar.IsCollapsed = compact;
-        Main.Columns = compact ? "1fr" : "minmax(220px, 320px) 1fr";
+        Main.Columns = compact ? "1fr" : "300px 1fr";
         PickerPanel.SetValue(HavenProperties.Visibility, compact ? HavenVisibility.Collapsed : HavenVisibility.Visible);
     }
 
