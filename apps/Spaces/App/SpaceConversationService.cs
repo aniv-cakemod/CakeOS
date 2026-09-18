@@ -29,6 +29,9 @@ public sealed class SpaceConversationService
             .OrderByDescending(c => c.UpdatedAt)
             .ToArray();
 
+    public Task<SpaceConversation?> GetAsync(Guid id, CancellationToken token = default) =>
+        _conversations.GetAsync(id, token);
+
     public async Task<SpaceConversation> StartAsync(Guid spaceId, string title = "New chat", CancellationToken token = default)
     {
         _ = await _spaces.GetAsync(spaceId, token).ConfigureAwait(false)
