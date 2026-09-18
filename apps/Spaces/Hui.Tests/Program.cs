@@ -9,7 +9,7 @@ try
     var conversations = new MemoryConversationStore();
     var conversationService = new SpaceConversationService(conversations, registry);
     var shell = new RecordingShell();
-    var app = new SpacesApplicationService(registry, conversationService, shell);
+    var app = new SpacesApplicationService(registry, conversationService, shell, new FixedModels(["gemma3:4b"]));
     using var controller = new SpacesHuiController(registry, conversationService, app, new FakePicker(root));
 
     await controller.ActivateAsync();
@@ -29,6 +29,7 @@ try
 
     await app.LaunchAsync(custom.Id);
     Require(shell.LastTarget == "chat", "general Space launches configured chat");
+    Require(shell.LastPlan?.ModelName is null, "missing preferred model falls back instead of blocking launch");
     Require((await conversationService.ListForSpaceAsync(custom.Id)).Count == 1, "launch created scoped conversation");
 
     await app.LaunchAsync(SpaceRegistry.StudySpaceId);
@@ -66,11 +67,12 @@ sealed class MemoryConversationStore : ISpaceConversationStore
 sealed class RecordingShell : ISpacesShellBridge
 {
     public string LastTarget { get; private set; } = string.Empty;
+    public SpaceLaunchPlan? LastPlan { get; private set; }
     public Task OpenHomeAsync(CancellationToken cancellationToken = default) { LastTarget = "home"; return Task.CompletedTask; }
     public Task OpenUnscopedChatAsync(CancellationToken cancellationToken = default) { LastTarget = "chat-unscoped"; return Task.CompletedTask; }
     public Task OpenStudyAsync(SpaceDefinition space, CancellationToken cancellationToken = default) { LastTarget = "study"; return Task.CompletedTask; }
     public Task OpenTasksAsync(SpaceDefinition space, CancellationToken cancellationToken = default) { LastTarget = "tasks"; return Task.CompletedTask; }
-    public Task OpenConfiguredChatAsync(SpaceDefinition space, SpaceLaunchPlan plan, SpaceConversation conversation, CancellationToken cancellationToken = default) { LastTarget = "chat"; return Task.CompletedTask; }
+    public Task OpenConfiguredChatAsync(SpaceDefinition space, SpaceLaunchPlan plan, SpaceConversation conversation, CancellationToken cancellationToken = default) { LastTarget = "chat"; LastPlan = plan; return Task.CompletedTask; }
     public Task OpenConversationAsync(SpaceConversation conversation, CancellationToken cancellationToken = default) { LastTarget = "conversation"; return Task.CompletedTask; }
 }
 
@@ -82,4 +84,10 @@ sealed class FakePicker(string root) : ISpacesFilePicker
         await File.WriteAllTextAsync(path, "notes", cancellationToken);
         return [path];
     }
+}
+
+sealed class FixedModels(IReadOnlyList<string> models) : ISpacesModelCatalog
+{
+    public Task<IReadOnlyList<string>> GetAvailableModelsAsync(CancellationToken cancellationToken = default) =>
+        Task.FromResult(models);
 }

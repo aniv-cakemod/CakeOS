@@ -33,11 +33,24 @@ try
     Require((await reopened.GetAllAsync(true)).Any(s => s.Id == created.Id && s.IsArchived), "archive recoverable");
     await reopened.SetArchivedAsync(created.Id, false);
 
-    var conversations = new MemoryConversationStore();
+    var conversationPath = Path.Combine(root, "conversations.json");
+    var conversations = new JsonSpaceConversationStore(conversationPath);
     var service = new SpaceConversationService(conversations, reopened);
     var chat = await service.StartAsync(created.Id);
     Require(chat.SpaceId == created.Id, "new chat assigned to Space");
     Require((await service.ListForSpaceAsync(created.Id)).Count == 1, "Space conversation listed");
+
+    var reopenedConversations = new SpaceConversationService(new JsonSpaceConversationStore(conversationPath), reopened);
+    Require((await reopenedConversations.ListForSpaceAsync(created.Id)).Single().Id == chat.Id, "Space conversations survive reopen");
+
+    var node = new SpaceLayoutNode(Guid.NewGuid(), "surface", "Revision checklist")
+    {
+        Ports = [new SpaceLayoutPort("out", "Out", SpaceLayoutPortDirection.Output)]
+    };
+    await reopened.SetLayoutAsync(created.Id, new SpaceLayoutDocument([node], []));
+    var reopenedLayout = (await new SpaceRegistry(new JsonSpaceStore(path)).GetAsync(created.Id))!.LayoutDocument;
+    Require(reopenedLayout?.Nodes.Count == 1 && reopenedLayout.Nodes[0].Title == "Revision checklist", "layout survives reopen");
+
     await service.DetachSpaceAsync(created.Id);
     Require((await conversations.GetAsync(chat.Id))?.SpaceId is null, "delete safety detaches conversations");
 
@@ -59,18 +72,4 @@ finally
 static void Require(bool condition, string message)
 {
     if (!condition) throw new InvalidOperationException("FAILED: " + message);
-}
-
-sealed class MemoryConversationStore : ISpaceConversationStore
-{
-    private readonly Dictionary<Guid, SpaceConversation> _items = [];
-    public Task<IReadOnlyList<SpaceConversation>> ListAsync(CancellationToken cancellationToken = default) =>
-        Task.FromResult<IReadOnlyList<SpaceConversation>>(_items.Values.ToArray());
-    public Task<SpaceConversation?> GetAsync(Guid id, CancellationToken cancellationToken = default) =>
-        Task.FromResult(_items.GetValueOrDefault(id));
-    public Task UpsertAsync(SpaceConversation conversation, CancellationToken cancellationToken = default)
-    {
-        _items[conversation.Id] = conversation;
-        return Task.CompletedTask;
-    }
 }

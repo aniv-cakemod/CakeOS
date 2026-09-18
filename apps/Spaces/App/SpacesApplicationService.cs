@@ -25,12 +25,18 @@ public sealed class SpacesApplicationService
     private readonly SpaceRegistry _registry;
     private readonly SpaceConversationService _conversations;
     private readonly ISpacesShellBridge _shell;
+    private readonly ISpacesModelCatalog? _models;
 
-    public SpacesApplicationService(SpaceRegistry registry, SpaceConversationService conversations, ISpacesShellBridge shell)
+    public SpacesApplicationService(
+        SpaceRegistry registry,
+        SpaceConversationService conversations,
+        ISpacesShellBridge shell,
+        ISpacesModelCatalog? models = null)
     {
         _registry = registry ?? throw new ArgumentNullException(nameof(registry));
         _conversations = conversations ?? throw new ArgumentNullException(nameof(conversations));
         _shell = shell ?? throw new ArgumentNullException(nameof(shell));
+        _models = models;
     }
 
     public async Task OpenHomeAsync(CancellationToken token = default)
@@ -52,7 +58,7 @@ public sealed class SpacesApplicationService
         if (space.IsArchived) throw new InvalidOperationException("Archived Spaces must be restored before opening.");
 
         await _registry.SetCurrentSpaceIdAsync(space.Id, token).ConfigureAwait(false);
-        var plan = SpaceLaunchPolicy.Resolve(space);
+        var plan = await ResolveAvailableModelAsync(SpaceLaunchPolicy.Resolve(space), token).ConfigureAwait(false);
         if (plan.Target == SpaceLaunchTarget.Study)
         {
             await _shell.OpenStudyAsync(space, token).ConfigureAwait(false);
@@ -89,5 +95,25 @@ public sealed class SpacesApplicationService
     {
         await _conversations.DetachSpaceAsync(spaceId, token).ConfigureAwait(false);
         await _registry.DeleteAsync(spaceId, token).ConfigureAwait(false);
+    }
+
+    private async Task<SpaceLaunchPlan> ResolveAvailableModelAsync(SpaceLaunchPlan plan, CancellationToken token)
+    {
+        if (_models is null || string.IsNullOrWhiteSpace(plan.ModelName)) return plan;
+        try
+        {
+            var available = await _models.GetAvailableModelsAsync(token).ConfigureAwait(false);
+            return available.Any(model => model.Equals(plan.ModelName, StringComparison.OrdinalIgnoreCase))
+                ? plan
+                : plan with { ModelName = null };
+        }
+        catch (OperationCanceledException) when (token.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception exception) when (exception is IOException or InvalidOperationException)
+        {
+            return plan with { ModelName = null };
+        }
     }
 }
