@@ -201,7 +201,12 @@ public sealed class SpaceRegistry
             spaces.Add(builtIn);
             changed = true;
         }
-        var reconciled = new SpaceState(CurrentVersion, state.CurrentSpaceId, spaces);
+        var currentSpaceId = state.CurrentSpaceId is { } currentId && spaces.Any(space => space.Id == currentId)
+            ? state.CurrentSpaceId
+            : null;
+        if (currentSpaceId != state.CurrentSpaceId) changed = true;
+
+        var reconciled = new SpaceState(CurrentVersion, currentSpaceId, spaces);
         if (changed) await _store.SaveAsync(reconciled, token).ConfigureAwait(false);
         return reconciled;
     }

@@ -1,3 +1,5 @@
+using System.Text.Json;
+
 namespace CakeOS.Spaces.Hui;
 
 public sealed class SpacesHuiController : IDisposable
@@ -89,6 +91,13 @@ public sealed class SpacesHuiController : IDisposable
 
     private async void OnSave(object? sender, SpaceEditorDraft draft) => await Safe(async () =>
     {
+        if (draft.GeneratedSurface is { } surface)
+        {
+            using var parsed = JsonDocument.Parse(surface.InputsJson);
+            if (parsed.RootElement.ValueKind != JsonValueKind.Object)
+                throw new InvalidOperationException("Generated surface inputs must be a JSON object.");
+        }
+
         var current = SelectedSpaceId is { } id ? await _registry.GetAsync(id) : null;
         if (current is null) return;
         await _registry.UpdateAsync(current with
@@ -169,7 +178,7 @@ public sealed class SpacesHuiController : IDisposable
     {
         if (_disposed) return;
         try { await operation().ConfigureAwait(false); }
-        catch (Exception ex) when (ex is IOException or InvalidOperationException or ArgumentException or UnauthorizedAccessException or KeyNotFoundException)
+        catch (Exception ex) when (ex is IOException or InvalidOperationException or ArgumentException or UnauthorizedAccessException or KeyNotFoundException or JsonException)
         { Scene.SetStatus($"Could not {action}: {ex.Message}"); }
     }
 
