@@ -73,8 +73,8 @@ sealed class RecordingShell : ISpacesShellBridge
     public SpaceLaunchPlan? LastPlan { get; private set; }
     public Task OpenHomeAsync(CancellationToken cancellationToken = default) { LastTarget = "home"; return Task.CompletedTask; }
     public Task OpenUnscopedChatAsync(CancellationToken cancellationToken = default) { LastTarget = "chat-unscoped"; return Task.CompletedTask; }
-    public Task OpenStudyAsync(SpaceDefinition space, CancellationToken cancellationToken = default) { LastTarget = "study"; return Task.CompletedTask; }
-    public Task OpenTasksAsync(SpaceDefinition space, CancellationToken cancellationToken = default) { LastTarget = "tasks"; return Task.CompletedTask; }
+    public Task OpenStudyAsync(SpaceDefinition space, SpaceLaunchPlan plan, CancellationToken cancellationToken = default) { LastTarget = "study"; LastPlan = plan; return Task.CompletedTask; }
+    public Task OpenTasksAsync(SpaceDefinition space, SpaceLaunchPlan plan, CancellationToken cancellationToken = default) { LastTarget = "tasks"; LastPlan = plan; return Task.CompletedTask; }
     public Task OpenConfiguredChatAsync(SpaceDefinition space, SpaceLaunchPlan plan, SpaceConversation conversation, CancellationToken cancellationToken = default) { LastTarget = "chat"; LastPlan = plan; return Task.CompletedTask; }
     public Task OpenConversationAsync(SpaceConversation conversation, CancellationToken cancellationToken = default) { LastTarget = "conversation"; return Task.CompletedTask; }
     public Task OpenSpaceLayoutAsync(SpaceDefinition space, CancellationToken cancellationToken = default) { LastTarget = "layout"; return Task.CompletedTask; }

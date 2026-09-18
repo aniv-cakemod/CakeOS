@@ -106,10 +106,10 @@ public sealed class SpacesLinuxRootProvider : CakeOS.HuiLinuxHost.IHuiRootProvid
         public Task OpenUnscopedChatAsync(CancellationToken cancellationToken = default) =>
             Unavailable("CakeOS Chat routing service is not present in this checkout.");
 
-        public Task OpenStudyAsync(SpaceDefinition space, CancellationToken cancellationToken = default) =>
+        public Task OpenStudyAsync(SpaceDefinition space, SpaceLaunchPlan plan, CancellationToken cancellationToken = default) =>
             Unavailable("CakeOS Study routing service is not present in this checkout.");
 
-        public Task OpenTasksAsync(SpaceDefinition space, CancellationToken cancellationToken = default) =>
+        public Task OpenTasksAsync(SpaceDefinition space, SpaceLaunchPlan plan, CancellationToken cancellationToken = default) =>
             Unavailable("CakeOS Tasks routing service is not present in this checkout.");
 
         public Task OpenConfiguredChatAsync(
