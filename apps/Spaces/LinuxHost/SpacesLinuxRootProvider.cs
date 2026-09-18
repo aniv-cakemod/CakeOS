@@ -1,3 +1,6 @@
+using Avalonia;
+using Avalonia.Controls.ApplicationLifetimes;
+using Avalonia.Platform.Storage;
 using CakeOS.HuiLinuxHost;
 using CakeOS.Platform;
 using CakeOS.Spaces.Hui;
@@ -26,7 +29,7 @@ public sealed class SpacesLinuxRootProvider : CakeOS.HuiLinuxHost.IHuiRootProvid
         var conversationStore = SpacesPlatformPaths.CreateDefaultConversationStore();
         var conversations = new SpaceConversationService(conversationStore, registry);
         var application = new SpacesApplicationService(registry, conversations, new UnavailableCakeOsShellBridge());
-        _controller = new SpacesHuiController(registry, conversations, application);
+        _controller = new SpacesHuiController(registry, conversations, application, new AvaloniaSpacesFilePicker());
         _root = new SpacesHuiRootElement(_controller.Scene.Root);
         return _root;
     }
@@ -96,6 +99,29 @@ public sealed class SpacesLinuxRootProvider : CakeOS.HuiLinuxHost.IHuiRootProvid
         _controller = null;
         _root = null;
         _state = HuiRootLifecycleState.Unavailable;
+    }
+
+    private sealed class AvaloniaSpacesFilePicker : ISpacesFilePicker
+    {
+        public async Task<IReadOnlyList<string>> PickFilesAsync(string title, CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (Application.Current?.ApplicationLifetime is not IClassicDesktopStyleApplicationLifetime desktop ||
+                desktop.MainWindow is null)
+                throw new InvalidOperationException("The Linux window is not available for file picking.");
+
+            var files = await desktop.MainWindow.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+            {
+                Title = string.IsNullOrWhiteSpace(title) ? "Add files to Space" : title,
+                AllowMultiple = true
+            });
+
+            cancellationToken.ThrowIfCancellationRequested();
+            return files.Select(file => file.TryGetLocalPath())
+                .OfType<string>()
+                .Where(path => !string.IsNullOrWhiteSpace(path))
+                .ToArray();
+        }
     }
 
     private sealed class UnavailableCakeOsShellBridge : ISpacesShellBridge
