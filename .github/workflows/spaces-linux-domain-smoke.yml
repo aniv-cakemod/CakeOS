@@ -1,0 +1,22 @@
+name: Spaces Linux Domain Smoke
+
+on:
+  push:
+    branches:
+      - aniv/spaces-linux
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  spaces-domain-smoke:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - name: Run Spaces domain/persistence smoke
+        run: dotnet run --project apps/Spaces/Tests/CakeOS.Spaces.Tests.csproj
