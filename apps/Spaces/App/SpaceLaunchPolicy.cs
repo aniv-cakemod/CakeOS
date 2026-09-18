@@ -8,7 +8,9 @@ public sealed record SpaceLaunchPlan(
     string? ModelName,
     SpaceThinkingMode ThinkingMode,
     string RegisteredContext,
-    IReadOnlyList<SpaceFileReference> Files);
+    IReadOnlyList<SpaceFileReference> Files,
+    SpaceGeneratedSurface? GeneratedSurface,
+    SpaceLayoutDocument? LayoutDocument);
 
 public static class SpaceLaunchPolicy
 {
@@ -21,7 +23,7 @@ public static class SpaceLaunchPolicy
             SpaceKind.Agent => SpaceLaunchTarget.Tasks,
             _ => SpaceLaunchTarget.Chat
         };
-        return new SpaceLaunchPlan(target, space.Name, space.ModelName, space.ThinkingMode, BuildContext(space), space.Files.ToArray());
+        return new SpaceLaunchPlan(target, space.Name, space.ModelName, space.ThinkingMode, BuildContext(space), space.Files.ToArray(), space.GeneratedSurface, space.LayoutDocument);
     }
 
     public static string BuildContext(SpaceDefinition space)

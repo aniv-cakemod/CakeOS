@@ -140,6 +140,28 @@ public sealed class SpaceRegistry
         }, cancellationToken);
     }
 
+    public Task<SpaceDefinition> SetLayoutAsync(Guid id, SpaceLayoutDocument? layout, CancellationToken cancellationToken = default) =>
+        MutateSpaceAsync(id, space => space with
+        {
+            LayoutDocument = CloneLayout(layout),
+            UpdatedAt = _clock()
+        }, cancellationToken);
+
+    private static SpaceLayoutDocument? CloneLayout(SpaceLayoutDocument? layout)
+    {
+        if (layout is null) return null;
+        return new SpaceLayoutDocument(
+            layout.Nodes.Select(node => node with
+            {
+                Ports = node.Ports.ToArray(),
+                Metadata = new Dictionary<string, string>(node.Metadata, StringComparer.Ordinal)
+            }).ToArray(),
+            layout.Edges.Select(edge => edge with
+            {
+                Metadata = new Dictionary<string, string>(edge.Metadata, StringComparer.Ordinal)
+            }).ToArray());
+    }
+
     private Task<SpaceDefinition> MutateSpaceAsync(Guid id, Func<SpaceDefinition, SpaceDefinition> mutation, CancellationToken token) =>
         MutateAsync(state =>
         {
