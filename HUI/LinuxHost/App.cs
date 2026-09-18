@@ -33,10 +33,10 @@ public sealed class App : Application
             {
                 if (RootProvider is not null)
                 {
-                    var initState = await RootProvider.InitializeAsync(Services).ConfigureAwait(false);
+                    var initState = await RootProvider.InitializeAsync(Services);
                     if (initState != HuiRootLifecycleState.Active)
                     {
-                        await RootProvider.ActivateAsync().ConfigureAwait(false);
+                        await RootProvider.ActivateAsync();
                     }
                 }
 
