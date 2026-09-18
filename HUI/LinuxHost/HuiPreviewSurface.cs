@@ -147,6 +147,18 @@ public sealed class HuiPreviewSurface : Control, IHavenMeasureContext, IDisposab
                     case HavenEllipseCommand ellipse:
                         context.DrawEllipse(Brush(ellipse.Brush, ellipse.Opacity), ellipse.Pen is null ? null : Pen(ellipse.Pen, ellipse.Opacity), Rect(ellipse.Rect));
                         break;
+                    case HavenGeometryCommand geometry:
+                        context.DrawGeometry(
+                            geometry.Fill is null ? null : Brush(geometry.Fill, geometry.Opacity),
+                            geometry.Stroke is null ? null : Pen(geometry.Stroke, geometry.Opacity),
+                            CreateGeometry(geometry.Geometry, geometry.Rect));
+                        break;
+                    case HavenIconCommand icon:
+                        context.DrawGeometry(
+                            null,
+                            new Pen(Brush(icon.Brush, icon.Opacity), Math.Max(1.5d, Math.Min(icon.Rect.Width, icon.Rect.Height) / 12d)),
+                            CreateGeometry(HavenIconCatalog.Resolve(icon.Key), icon.Rect, preserveAspect: true));
+                        break;
                     case HavenImageCommand image:
                         DrawImage(context, image);
                         break;
@@ -696,6 +708,71 @@ public sealed class HuiPreviewSurface : Control, IHavenMeasureContext, IDisposab
         using var opacity = context.PushOpacity(Math.Clamp(command.Opacity, 0d, 1d));
         using var clip = context.PushClip(target);
         context.DrawImage(_canvasSvgImage, source, target);
+    }
+
+    private static StreamGeometry CreateGeometry(HavenGeometry source, HavenRect target, bool preserveAspect = false)
+    {
+        var geometry = new StreamGeometry();
+        using var writer = geometry.Open();
+        writer.SetFillRule(source.Path.FillRule == HavenFillRule.NonZero ? FillRule.NonZero : FillRule.EvenOdd);
+        foreach (var figure in source.Path.Figures)
+        {
+            writer.BeginFigure(MapPoint(figure.Start, source.ViewBox, target, preserveAspect), isFilled: true);
+            foreach (var segment in figure.Segments)
+            {
+                switch (segment)
+                {
+                    case HavenLineSegment line:
+                        writer.LineTo(MapPoint(line.End, source.ViewBox, target, preserveAspect));
+                        break;
+                    case HavenQuadraticBezierSegment quadratic:
+                        writer.QuadraticBezierTo(
+                            MapPoint(quadratic.Control, source.ViewBox, target, preserveAspect),
+                            MapPoint(quadratic.End, source.ViewBox, target, preserveAspect));
+                        break;
+                    case HavenCubicBezierSegment cubic:
+                        writer.CubicBezierTo(
+                            MapPoint(cubic.Control1, source.ViewBox, target, preserveAspect),
+                            MapPoint(cubic.Control2, source.ViewBox, target, preserveAspect),
+                            MapPoint(cubic.End, source.ViewBox, target, preserveAspect));
+                        break;
+                    case HavenArcSegment arc:
+                        writer.ArcTo(
+                            MapPoint(arc.End, source.ViewBox, target, preserveAspect),
+                            MapSize(arc.Radius, source.ViewBox, target, preserveAspect),
+                            arc.RotationDegrees,
+                            arc.IsLargeArc,
+                            arc.SweepDirection == HavenSweepDirection.Clockwise ? SweepDirection.Clockwise : SweepDirection.CounterClockwise);
+                        break;
+                }
+            }
+            writer.EndFigure(figure.Closed);
+        }
+        return geometry;
+    }
+
+    private static Point MapPoint(HavenPoint point, HavenRect? viewBox, HavenRect target, bool preserveAspect)
+    {
+        if (viewBox is not { Width: > 0, Height: > 0 } source)
+            return new Point(point.X, point.Y);
+        var scaleX = target.Width / source.Width;
+        var scaleY = target.Height / source.Height;
+        if (preserveAspect) scaleX = scaleY = Math.Min(scaleX, scaleY);
+        var contentWidth = source.Width * scaleX;
+        var contentHeight = source.Height * scaleY;
+        return new Point(
+            target.X + (target.Width - contentWidth) / 2d + (point.X - source.X) * scaleX,
+            target.Y + (target.Height - contentHeight) / 2d + (point.Y - source.Y) * scaleY);
+    }
+
+    private static Size MapSize(HavenSize size, HavenRect? viewBox, HavenRect target, bool preserveAspect)
+    {
+        if (viewBox is not { Width: > 0, Height: > 0 } source)
+            return new Size(size.Width, size.Height);
+        var scaleX = target.Width / source.Width;
+        var scaleY = target.Height / source.Height;
+        if (preserveAspect) scaleX = scaleY = Math.Min(scaleX, scaleY);
+        return new Size(size.Width * scaleX, size.Height * scaleY);
     }
 
     private static (HuiPage Root, HuiButton Action, HuiText Status) BuildScene()
