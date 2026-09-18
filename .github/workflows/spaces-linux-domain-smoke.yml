@@ -28,4 +28,4 @@ jobs:
           CAKEOS_HUI_PREVIEW_AUTO_EXIT_MS: '1200'
         run: |
           mkdir -p "$XDG_STATE_HOME"
-          xvfb-run -a apps/Spaces/LinuxHost/run-linux.sh
+          xvfb-run -a bash apps/Spaces/LinuxHost/run-linux.sh
