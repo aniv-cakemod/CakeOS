@@ -20,3 +20,5 @@ jobs:
           dotnet-version: '10.0.x'
       - name: Run Spaces domain/persistence smoke
         run: dotnet run --project apps/Spaces/Tests/CakeOS.Spaces.Tests.csproj
+      - name: Run Spaces HUI/controller smoke
+        run: dotnet run --project apps/Spaces/Hui.Tests/CakeOS.Spaces.Hui.Tests.csproj
