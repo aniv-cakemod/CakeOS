@@ -17,10 +17,12 @@ public sealed class PreviewWindow : Window
 
     public PreviewWindow(IRootElement? root)
     {
-        if (root is not null)
-            throw new NotSupportedException("The Linux HUI host cannot render an unadapted platform root.");
-
-        _surface = new HuiPreviewSurface();
+        _surface = root switch
+        {
+            null => new HuiPreviewSurface(),
+            IHuiRootElement { NativeRoot: Haven.UI.Components.Page page } => new HuiPreviewSurface(page),
+            _ => throw new NotSupportedException("The Linux HUI host can only render a compatible HUI Page root.")
+        };
 
         Title = _canvasMode ? "CakeOS HUI Canvas / Rnote Preview" : "CakeOS HUI Linux Preview";
         Width = 960;
